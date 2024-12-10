@@ -97,6 +97,13 @@ import { TunnelSource } from '../services/remote/common/tunnelModel.js';
 import { mainWindow } from '../../base/browser/window.js';
 import { INotificationService, Severity } from '../../platform/notification/common/notification.js';
 
+
+const files = [
+	{ name: "index.js", content: "console.log('Hello, World!');" },
+	{ name: "README.md", content: "# This is a README file 22." },
+];
+
+
 export class BrowserMain extends Disposable {
 
 	private readonly onWillShutdownDisposables = this._register(new DisposableStore());
@@ -117,6 +124,56 @@ export class BrowserMain extends Disposable {
 		setFullscreen(!!detectFullscreen(mainWindow), mainWindow);
 	}
 
+
+	private async openDefaultFiles(
+		instantiationService: IInstantiationService
+	): Promise<void> {
+		try {
+			//@ts-ignore
+			const fileService = instantiationService._services.get(IFileService);
+			//@ts-ignore
+			const commandService =
+				//@ts-ignore
+				instantiationService._services.get(ICommandService);
+
+			// Create main workspace folder
+			const workspaceFolder = URI.file("/workspace").with({ scheme: "tmp" });
+			const projectFolder = URI.joinPath(workspaceFolder, "my-project");
+
+			// Register the tmp file system provider if not already registered
+			if (!fileService.hasProvider(workspaceFolder)) {
+				fileService.registerProvider("tmp", new InMemoryFileSystemProvider());
+			}
+
+			// Create the workspace and project folders
+			if (!(await fileService.exists(workspaceFolder))) {
+				await fileService.createFolder(workspaceFolder);
+			}
+			if (!(await fileService.exists(projectFolder))) {
+				await fileService.createFolder(projectFolder);
+			}
+
+			// Create files inside the project folder
+			for (const file of files) {
+				const uri = URI.joinPath(projectFolder, file.name).with({
+					scheme: "tmp",
+				});
+				await fileService.createFile(uri, VSBuffer.fromString(file.content));
+			}
+
+			// Open the project folder using vscode.openFolder command
+			await commandService.executeCommand("vscode.openFolder", projectFolder);
+
+			// Open and focus the explorer view
+			await commandService.executeCommand("workbench.view.explorer");
+			await commandService.executeCommand("workbench.explorer.fileView.focus");
+		} catch (error) {
+			console.error("Error creating/opening files:", error);
+		}
+	}
+
+
+
 	async open(): Promise<IWorkbench> {
 
 		// Init services and wait for DOM to be ready in parallel
@@ -133,6 +190,8 @@ export class BrowserMain extends Disposable {
 
 		// Window
 		this._register(instantiationService.createInstance(BrowserWindow));
+
+		await this.openDefaultFiles(instantiationService);
 
 		// Logging
 		services.logService.trace('workbench#open with configuration', safeStringify(this.configuration));

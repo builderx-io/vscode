@@ -1479,6 +1479,24 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 	}
 
 	protected createWorkbenchLayout(): void {
+
+
+
+		// Create split container
+		const splitContainer = document.createElement('div');
+		splitContainer.className = 'split-container';
+		// this.mainContainer.appendChild(splitContainer);
+
+		// Create left side (red box)
+		const leftSide = document.createElement('div');
+		leftSide.className = 'split-left';
+		splitContainer.appendChild(leftSide);
+
+		// Create right side (VS Code layout)
+		const rightSide = document.createElement('div');
+		rightSide.className = 'split-right';
+		splitContainer.appendChild(rightSide);
+
 		const titleBar = this.getPart(Parts.TITLEBAR_PART);
 		const bannerPart = this.getPart(Parts.BANNER_PART);
 		const editorPart = this.getPart(Parts.EDITOR_PART);
@@ -1509,17 +1527,26 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 			[Parts.AUXILIARYBAR_PART]: this.auxiliaryBarPartView
 		};
 
-		const fromJSON = ({ type }: { type: Parts }) => viewMap[type];
+
+		// const fromJSON = ({ type }: { type: Parts }) => viewMap[type];
 		const workbenchGrid = SerializableGrid.deserialize(
 			this.createGridDescriptor(),
-			{ fromJSON },
+			{ fromJSON: ({ type }: { type: Parts }) => viewMap[type] },
 			{ proportionalLayout: false }
 		);
 
-		this.mainContainer.prepend(workbenchGrid.element);
+		rightSide.appendChild(workbenchGrid.element);
+
+		this.mainContainer.prepend(splitContainer);
+
+		// this.mainContainer.prepend(workbenchGrid.element);
 		this.mainContainer.setAttribute('role', 'application');
 		this.workbenchGrid = workbenchGrid;
 		this.workbenchGrid.edgeSnapping = this.state.runtime.mainWindowFullscreen;
+
+
+
+
 
 		for (const part of [titleBar, editorPart, activityBar, panelPart, sideBar, statusBar, auxiliaryBarPart, bannerPart]) {
 			this._register(part.onDidVisibilityChange((visible) => {
@@ -1565,17 +1592,32 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 
 	layout(): void {
 		if (!this.disposed) {
-			this._mainContainerDimension = getClientArea(this.state.runtime.mainWindowFullscreen ?
-				mainWindow.document.body : 	// in fullscreen mode, make sure to use <body> element because
-				this.parent					// in that case the workbench will span the entire site
+			this._mainContainerDimension = getClientArea(
+				this.state.runtime.mainWindowFullscreen
+					? mainWindow.document.body // in fullscreen mode, make sure to use <body> element because
+					: this.parent // in that case the workbench will span the entire site
 			);
-			this.logService.trace(`Layout#layout, height: ${this._mainContainerDimension.height}, width: ${this._mainContainerDimension.width}`);
+			this.logService.trace(
+				`Layout#layout, height: ${this._mainContainerDimension.height}, width: ${this._mainContainerDimension.width}`
+			);
 
 			position(this.mainContainer, 0, 0, 0, 0, 'relative');
 			size(this.mainContainer, this._mainContainerDimension.width, this._mainContainerDimension.height);
 
 			// Layout the grid widget
-			this.workbenchGrid.layout(this._mainContainerDimension.width, this._mainContainerDimension.height);
+			// this.workbenchGrid.layout(
+			// 	this._mainContainerDimension.width,
+			// 	this._mainContainerDimension.height
+			// );
+
+			const rightSideWidth = Math.floor(this._mainContainerDimension.width / 2);
+			this.workbenchGrid.layout(
+				rightSideWidth,
+				this._mainContainerDimension.height
+			);
+
+			// this.workbenchGrid.layout(this._mainContainerDimension.width, this._mainContainerDimension.height);
+
 			this.initialized = true;
 
 			// Emit as event

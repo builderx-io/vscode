@@ -321,3 +321,51 @@ body.web {
 	outline: 1px dashed var(--vscode-toolbar-hoverOutline);
 	outline-offset: -1px;
 }
+
+
+.split-container {
+	display: flex;
+	flex: 1;
+	height: 100%;
+}
+
+.split-left {
+	height: 100%;
+	display: flex;
+
+	flex: 1;
+	background-color: var(--vscode-editor-background);
+	border-right: 1px solid var(--vscode-editorGroup-border);
+}
+
+.split-left-iframe {
+	width: 100%;
+	height: 100%;
+	border: none;
+	background: white;
+}
+
+.split-right {
+	height: 100%;
+	display: flex;
+
+	flex: 1;
+	/* Prevent right side from shrinking */
+}
+
+
+.split-view-container {
+	display: flex;
+	width: 100%;
+	height: 100%;
+}
+
+.left-panel {
+	width: 200px;
+	border-right: 1px solid var(--divider-color);
+}
+
+.right-panel {
+	flex: 1;
+	overflow: auto;
+}
